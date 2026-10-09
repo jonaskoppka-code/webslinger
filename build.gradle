@@ -1,3 +1,13 @@
+pluginManagement {
+    repositories {
+        maven {
+            name = 'Fabric'
+            url = 'https://maven.fabricmc.net/'
+        }
+        gradlePluginPortal()
+    }
+}
+
 plugins {
     id 'fabric-loom' version '1.6-SNAPSHOT'
 }
@@ -7,6 +17,10 @@ group = "dev.codex.webslinger"
 
 repositories {
     mavenCentral()
+    maven {
+        name = 'Fabric'
+        url = 'https://maven.fabricmc.net/'
+    }
 }
 
 dependencies {
