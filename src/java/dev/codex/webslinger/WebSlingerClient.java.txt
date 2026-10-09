@@ -1,0 +1,93 @@
+package dev.codex.webslinger;
+
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.util.InputUtil;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.Vec3d;
+import org.lwjgl.glfw.GLFW;
+
+public final class WebSlingerClient implements ClientModInitializer {
+    private static final double MAX_RANGE = 48.0;
+    private static final double MAX_SPEED = 2.2;
+    private static final double GRAVITY_PULL = 0.035;
+
+    private static KeyBinding webKey;
+    private static Vec3d anchor;
+    private static double ropeLength;
+
+    @Override
+    public void onInitializeClient() {
+        webKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key.webslinger.web",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_G,
+                "category.webslinger"
+        ));
+
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            PlayerEntity player = client.player;
+            if (player == null || client.world == null || client.isPaused()) {
+                anchor = null;
+                return;
+            }
+
+            while (webKey.wasPressed()) {
+                if (anchor != null) {
+                    anchor = null;
+                    player.sendMessage(
+                            net.minecraft.text.Text.literal("Web released"),
+                            true
+                    );
+                    continue;
+                }
+
+                HitResult hit = player.raycast(MAX_RANGE, 1.0F, false);
+                if (hit instanceof BlockHitResult blockHit
+                        && hit.getType() == HitResult.Type.BLOCK) {
+                    anchor = Vec3d.ofCenter(blockHit.getBlockPos());
+                    ropeLength = Math.max(3.0, player.getPos().distanceTo(anchor) - 1.0);
+                    player.sendMessage(
+                            net.minecraft.text.Text.literal("Web attached"),
+                            true
+                    );
+                }
+            }
+
+            if (anchor != null) {
+                swing(player);
+            }
+        });
+    }
+
+    private static void swing(PlayerEntity player) {
+        Vec3d center = player.getPos().add(0, player.getHeight() * 0.5, 0);
+        Vec3d fromAnchor = center.subtract(anchor);
+        double distance = fromAnchor.length();
+        if (distance < 0.001) return;
+
+        Vec3d radial = fromAnchor.normalize();
+        Vec3d velocity = player.getVelocity().add(0, -GRAVITY_PULL, 0);
+
+        double outwardSpeed = velocity.dotProduct(radial);
+        if (distance >= ropeLength && outwardSpeed > 0) {
+            velocity = velocity.subtract(radial.multiply(outwardSpeed));
+        }
+
+        double stretch = distance - ropeLength;
+        if (stretch > 0) {
+            velocity = velocity.subtract(radial.multiply(Math.min(stretch * 0.2, 0.3)));
+        }
+
+        double speed = velocity.length();
+        if (speed > MAX_SPEED) {
+            velocity = velocity.multiply(MAX_SPEED / speed);
+        }
+
+        player.setVelocity(velocity);
+    }
+}
