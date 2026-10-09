@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "webslinger",
+  "version": "1.0.0",
+  "name": "Web Slinger",
+  "description": "Grappling hook physics mod",
+  "authors": ["Codex"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.codex.webslinger.WebSlingerClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*"
+  }
+}
